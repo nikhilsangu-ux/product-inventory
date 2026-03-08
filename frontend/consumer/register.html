@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Customer Register</title>
+    <style>
+        body { 
+            font-family:'Segoe UI', sans-serif; 
+            background: linear-gradient(135deg, #eaf7f0, #d9f5e9); 
+            display:flex; justify-content:center; align-items:center; height:100vh; margin:0; 
+        }
+        .container { 
+            background:#fff; padding:40px; border-radius:15px; box-shadow:0 10px 25px rgba(0,0,0,0.1); 
+            width:350px; text-align:center; animation:slideIn 1s;
+        }
+        input { 
+            width:100%; padding:10px; margin:10px 0; border-radius:5px; border:1px solid #ccc; transition:0.3s;
+        }
+        input:focus { border-color:#28a745; outline:none; }
+        button { 
+            width:100%; padding:10px; background:#28a745; color:#fff; border:none; border-radius:5px; cursor:pointer; transition:0.3s;
+        }
+        button:hover { background:#1e7e34; }
+        a { display:block; margin-top:10px; color:#28a745; text-decoration:none; }
+        a:hover { text-decoration:underline; }
+        @keyframes slideIn { from {transform: translateY(-50px); opacity:0;} to {transform: translateY(0); opacity:1;} }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Customer Register</h2>
+        <input type="text" id="name" placeholder="Name">
+        <input type="email" id="email" placeholder="Email">
+        <input type="password" id="password" placeholder="Password">
+        <input type="text" id="address" placeholder="Address">
+        <button onclick="register()">Register</button>
+        <a href="login.html">Already have an account? Login</a>
+    </div>
+
+    <script>
+        async function register() {
+            const name = document.getElementById("name").value.trim();
+            const email = document.getElementById("email").value.trim();
+            const password = document.getElementById("password").value.trim();
+            const address = document.getElementById("address").value.trim();
+
+            if(!name || !email || !password || !address) return alert("All fields are required");
+
+            try {
+                const res = await fetch("http://localhost:5001/customer/register", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ name, email, password, address })
+                });
+                const data = await res.json();
+
+                if(data.error) { 
+                    alert(data.error); 
+                    return; 
+                }
+
+                // Store customer info in localStorage
+                localStorage.setItem("customerId", data.customer?._id || ""); // fallback if backend doesn't return customer object
+                localStorage.setItem("customerName", name);
+
+                alert(data.message || "Registered successfully!");
+                window.location.href = "cd.html";
+            } catch(err) {
+                console.error(err);
+                alert("Registration failed. Try again.");
+            }
+        }
+    </script>
+</body>
+</html>

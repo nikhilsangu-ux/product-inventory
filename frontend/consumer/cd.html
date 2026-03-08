@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Consumer Dashboard</title>
+    <style>
+        body { 
+            font-family: 'Segoe UI', sans-serif; 
+            background: #f0f0f0; /* light grey */
+            padding: 20px; 
+        }
+        h2 { 
+            color: #28a745; /* light green */
+            margin-top: 0; 
+        }
+        .tabs { 
+            margin-top: 20px; 
+        }
+        .tab-btn { 
+            padding: 10px 15px; 
+            border: none; 
+            border-radius: 5px 5px 0 0; 
+            cursor: pointer; 
+            background: #28a745; /* light green */
+            color: #fff; 
+            margin-right: 5px; 
+        }
+        .tab-btn.active { 
+            background: #218838; /* darker green for active */
+        }
+        .tab-content { 
+            background: #fff; 
+            padding: 20px; 
+            border-radius: 0 5px 5px 5px; 
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1); 
+            margin-top: -5px; 
+        }
+        table { 
+            width: 100%; 
+            border-collapse: collapse; 
+            margin-top: 10px; 
+        }
+        th, td { 
+            padding: 10px; 
+            border: 1px solid #ccc; 
+            text-align: center; 
+        }
+        th { 
+            background: #28a745; /* light green */
+            color: #fff; 
+        }
+        input { 
+            padding: 5px; 
+            margin-right: 5px; 
+        }
+        button { 
+            padding: 5px 10px; 
+            border: none; 
+            border-radius: 5px; 
+            cursor: pointer; 
+            margin: 2px; 
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Consumer Dashboard</h2>
+
+    <!-- Tabs -->
+    <div class="tabs">
+        <button class="tab-btn active" onclick="openTab('shopTab', this)">Shop</button>
+        <button class="tab-btn" onclick="openTab('cartTab', this)">Cart</button>
+        <button class="tab-btn" onclick="openTab('ordersTab', this)">Order History</button>
+    </div>
+
+    <!-- Shop Tab -->
+    <div id="shopTab" class="tab-content">
+        <table id="shopTable">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Brand</th>
+                    <th>Type</th>
+                    <th>Price</th>
+                    <th>Stock</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+    <!-- Cart Tab -->
+    <div id="cartTab" class="tab-content" style="display:none;">
+        <table id="cartTable">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Quantity</th>
+                    <th>Price</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+        <div style="margin-top:10px;">
+            <button id="checkoutBtn">Checkout</button>
+        </div>
+    </div>
+
+    <!-- Order History Tab -->
+    <div id="ordersTab" class="tab-content" style="display:none;">
+        <table id="orderTable">
+            <thead>
+                <tr>
+                    <th>Order ID</th>
+                    <th>Products</th>
+                    <th>Total (₹)</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+<script>
+/* ===== Tabs Logic ===== */
+function openTab(tabId, btn) {
+    document.querySelectorAll('.tab-content').forEach(t => t.style.display='none');
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById(tabId).style.display='block';
+    btn.classList.add('active');
+}
+
+/* ===== Shop ===== */
+const shopTableBody = document.querySelector("#shopTable tbody");
+const cartTableBody = document.querySelector("#cartTable tbody");
+const orderTableBody = document.querySelector("#orderTable tbody");
+
+let products = [];
+let cart = JSON.parse(localStorage.getItem("cart")) || [];
+let customerId = localStorage.getItem("customerId") || "testCustomer123"; // For testing
+
+async function loadShop() {
+    try {
+        const res = await fetch("http://localhost:5001/products");
+        products = await res.json();
+        shopTableBody.innerHTML = "";
+        products.forEach(p => {
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td>${p.name}</td>
+                <td>${p.brand}</td>
+                <td>${p.type}</td>
+                <td>₹${p.price.toLocaleString('en-IN')}</td>
+                <td>${p.stock}</td>
+                <td><button onclick="addToCart('${p._id}')">Add to Cart</button></td>
+            `;
+            shopTableBody.appendChild(row);
+        });
+    } catch(err) { alert("Failed to load products"); }
+}
+
+/* ===== Cart ===== */
+function renderCart() {
+    cartTableBody.innerHTML = "";
+    if (cart.length === 0) {
+        cartTableBody.innerHTML = `<tr><td colspan="4">Cart is empty</td></tr>`;
+        return;
+    }
+    cart.forEach(item => {
+        const product = products.find(p => p._id === item.product);
+        if (!product) return;
+        const row = document.createElement("tr");
+        row.innerHTML = `
+            <td>${product.name}</td>
+            <td><input type="number" value="${item.quantity}" min="1" onchange="updateCartQuantity('${item.product}', this.value)"></td>
+            <td>₹${(product.price * item.quantity).toLocaleString('en-IN')}</td>
+            <td><button onclick="removeFromCart('${item.product}')">Remove</button></td>
+        `;
+        cartTableBody.appendChild(row);
+    });
+    localStorage.setItem("cart", JSON.stringify(cart));
+}
+
+function addToCart(productId) {
+    const existing = cart.find(c => c.product === productId);
+    if (existing) existing.quantity += 1;
+    else cart.push({ product: productId, quantity: 1 });
+    renderCart();
+}
+
+function removeFromCart(productId) {
+    cart = cart.filter(c => c.product !== productId);
+    renderCart();
+}
+
+function updateCartQuantity(productId, qty) {
+    const item = cart.find(c => c.product === productId);
+    if (item) item.quantity = Number(qty);
+    renderCart();
+}
+
+/* ===== Checkout ===== */
+document.getElementById("checkoutBtn").addEventListener("click", async () => {
+    if (cart.length === 0) return alert("Cart is empty");
+
+    try {
+        const res = await fetch("http://localhost:5001/orders", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ customerId, products: cart })
+        });
+        const data = await res.json();
+        if (data.error) alert(data.error);
+        else {
+            alert("Order placed successfully");
+            cart = [];
+            renderCart();
+            loadOrders();
+        }
+    } catch(err) { alert("Failed to place order"); }
+});
+
+/* ===== Order History ===== */
+async function loadOrders() {
+    try {
+        const res = await fetch(`http://localhost:5001/orders/${customerId}`);
+        const orders = await res.json();
+        orderTableBody.innerHTML = "";
+        if (orders.length === 0) {
+            orderTableBody.innerHTML = `<tr><td colspan="4">No orders found</td></tr>`;
+            return;
+        }
+        orders.forEach(order => {
+            const productsStr = order.products.map(p => `${p.product.name} (${p.quantity})`).join(", ");
+            const row = document.createElement("tr");
+            row.innerHTML = `
+                <td>${order._id}</td>
+                <td>${productsStr}</td>
+                <td>₹${order.totalAmount.toLocaleString('en-IN')}</td>
+                <td>${order.status}</td>
+            `;
+            orderTableBody.appendChild(row);
+        });
+    } catch(err) { alert("Failed to load orders"); }
+}
+
+/* ===== Initial Load ===== */
+async function initDashboard() {
+    await loadShop();
+    renderCart();
+    loadOrders();
+}
+
+initDashboard();
+</script>
+
+</body>
+</html>

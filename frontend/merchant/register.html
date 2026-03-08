@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Merchant Register</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: linear-gradient(135deg, #eef2f7, #d9e4f5); display:flex; justify-content:center; align-items:center; height:100vh; margin:0;}
+        .container { background:#fff; padding:40px; border-radius:15px; box-shadow:0 10px 25px rgba(0,0,0,0.1); width:350px; text-align:center; animation:slideIn 1s;}
+        input { width:100%; padding:10px; margin:10px 0; border-radius:5px; border:1px solid #ccc; transition:0.3s;}
+        input:focus { border-color:#007bff; outline:none; }
+        button { width:100%; padding:10px; background:#007bff; color:#fff; border:none; border-radius:5px; cursor:pointer; transition:0.3s;}
+        button:hover { background:#0056b3; }
+        a { display:block; margin-top:10px; color:#007bff; text-decoration:none; }
+        a:hover { text-decoration:underline; }
+        @keyframes slideIn { from {transform: translateY(-50px); opacity:0;} to {transform: translateY(0); opacity:1;} }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>Merchant Register</h2>
+        <input type="text" id="name" placeholder="Name">
+        <input type="email" id="email" placeholder="Email">
+        <input type="password" id="password" placeholder="Password">
+        <button onclick="register()">Register</button>
+        <a href="login.html">Already have an account? Login</a>
+    </div>
+
+    <script>
+        async function register() {
+            const name = document.getElementById("name").value;
+            const email = document.getElementById("email").value;
+            const password = document.getElementById("password").value;
+            const res = await fetch("http://localhost:5001/merchant/register", {
+                method:"POST",
+                headers:{"Content-Type":"application/json"},
+                body: JSON.stringify({name,email,password})
+            });
+            const data = await res.json();
+            alert(data.message);
+            window.location.href = "login.html";
+        }
+    </script>
+</body>
+</html>
